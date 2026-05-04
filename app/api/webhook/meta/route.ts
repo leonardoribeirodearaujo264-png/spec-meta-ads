@@ -1,6 +1,7 @@
-import { createSupabaseClient } from '@/lib/supabase'
+import { createSupabaseAdmin } from '@/lib/supabase'
 import { enviarMensagem } from '@/lib/uazapi'
 
+// GET — Meta verifica o webhook aqui
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const mode = searchParams.get('hub.mode')
@@ -14,6 +15,7 @@ export async function GET(request: Request) {
   return new Response('Forbidden', { status: 403 })
 }
 
+// POST — Meta envia os dados do lead aqui
 export async function POST(request: Request) {
   try {
     const body = await request.json()
@@ -35,7 +37,7 @@ export async function POST(request: Request) {
       ? telefoneLimpo
       : `55${telefoneLimpo}`
 
-    const supabase = createSupabaseClient()
+    const supabase = createSupabaseAdmin()
 
     const { data: leadSalvo, error } = await supabase
       .from('leads')
@@ -50,7 +52,6 @@ export async function POST(request: Request) {
 
     if (telefoneFormatado.length >= 12) {
       const sucesso = await enviarMensagem(telefoneFormatado, nome)
-
       await supabase
         .from('leads')
         .update({
@@ -64,6 +65,5 @@ export async function POST(request: Request) {
     console.error('Erro no webhook:', err)
   }
 
-  // Sempre retornar 200 para a Meta
   return new Response('OK', { status: 200 })
 }

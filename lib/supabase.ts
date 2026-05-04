@@ -1,15 +1,15 @@
 import { createClient } from '@supabase/supabase-js'
 
-export function createSupabaseClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+// Usado no servidor (webhook, dashboard) — ignora RLS
+export function createSupabaseAdmin() {
+  return createClient(url, serviceKey)
 }
 
-export function createSupabasePublicClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+// Usado no cliente — sujeito a RLS
+export function createSupabaseClient() {
+  return createClient(url, anonKey)
 }
