@@ -1,13 +1,10 @@
 import { getSetting } from './settings'
 
 const DEFAULT_TEMPLATE =
-  `Olá {nome}! 🎉\n\n` +
-  `Recebemos sua inscrição no *Workshop Advogado Dominante*!\n\n` +
-  `Seu acesso ao grupo exclusivo foi liberado. Clique no link abaixo para entrar:\n` +
-  `{link}\n\n` +
-  `Este link é pessoal e intransferível.\n\n` +
-  `Qualquer dúvida estamos à disposição!\n\n` +
-  `— Equipe Advogado Dominante`
+  `🎉 Seu acesso ao Advogado Dominante foi liberado!\n` +
+  `👊 Entre agora no grupo — essa oportunidade pode fechar a qualquer momento!\n\n` +
+  `👉 Clique no link abaixo para acessar:\n` +
+  `{link}`
 
 export async function enviarMensagem(
   telefone: string,

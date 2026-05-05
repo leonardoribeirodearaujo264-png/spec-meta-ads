@@ -35,6 +35,8 @@ export default function ConfiguracoesPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [showToken, setShowToken] = useState(false)
+  const [webhookUrl, setWebhookUrl] = useState('')
+  const [copiedWebhook, setCopiedWebhook] = useState(false)
 
   // Meta test
   const [testing, setTesting] = useState(false)
@@ -55,6 +57,7 @@ export default function ConfiguracoesPage() {
   const [syncResult, setSyncResult] = useState<{ ok: boolean; msg: string } | null>(null)
 
   useEffect(() => {
+    setWebhookUrl(`${window.location.origin}/api/webhook/meta`)
     fetch('/api/configuracoes')
       .then((r) => r.json())
       .then((j) => setSettings(j.settings ?? {}))
@@ -231,6 +234,38 @@ export default function ConfiguracoesPage() {
       </div>
 
       <div className="space-y-5">
+
+        {/* ── URL DO WEBHOOK ── */}
+        <div className="rounded-xl border p-5" style={{ background: '#13102A', borderColor: '#2A1F5C' }}>
+          <h2 className="text-sm font-semibold text-white mb-1">URL do Webhook — Meta Lead Ads</h2>
+          <p className="text-xs mb-3" style={{ color: '#9B8EC4' }}>
+            Cole essa URL no <strong style={{ color: '#fff' }}>Meta Business Manager → Webhooks → Campo: leadgen</strong>.
+            Use o <strong style={{ color: '#fff' }}>Verify Token</strong> configurado na seção de Webhook abaixo.
+          </p>
+          <div className="flex items-center gap-2">
+            <code
+              className="flex-1 px-3 py-2.5 rounded-lg text-xs break-all select-all"
+              style={{ background: '#100D26', color: '#C4B5FD', border: '1px solid #2A1F5C' }}
+            >
+              {webhookUrl || 'Carregando...'}
+            </code>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(webhookUrl)
+                setCopiedWebhook(true)
+                setTimeout(() => setCopiedWebhook(false), 2000)
+              }}
+              className="flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors"
+              style={{ background: copiedWebhook ? '#14532d' : '#2A1F5C', color: copiedWebhook ? '#86efac' : '#8B5CF6' }}
+            >
+              <Copy size={12} />
+              {copiedWebhook ? 'Copiado!' : 'Copiar'}
+            </button>
+          </div>
+          <p className="text-xs mt-2" style={{ color: '#6B5FA0' }}>
+            A sincronização automática roda a cada 15 minutos via cron. O webhook garante tempo real.
+          </p>
+        </div>
 
         {/* ── META / FACEBOOK ADS ── */}
         <div className="rounded-xl border p-5" style={{ background: '#13102A', borderColor: '#2A1F5C' }}>
