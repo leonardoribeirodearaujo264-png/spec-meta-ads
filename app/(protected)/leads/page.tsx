@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import {
-  CheckCircle, XCircle, RefreshCw, Search, RotateCcw, CheckSquare,
+  CheckCircle, XCircle, RefreshCw, Search, RotateCcw, CheckSquare, Download,
 } from 'lucide-react'
+import Link from 'next/link'
 
 interface Lead {
   id: string
@@ -14,6 +15,8 @@ interface Lead {
   whatsapp_enviado_em: string | null
   erro_whatsapp: string | null
   created_at: string
+  facebook_lead_id?: string | null
+  form_id?: string | null
 }
 
 type Filter = 'todos' | 'enviados' | 'pendentes' | 'erro'
@@ -40,7 +43,8 @@ export default function LeadsPage() {
   const [filter, setFilter] = useState<Filter>('todos')
   const [sending, setSending] = useState<string | null>(null)
   const [marking, setMarking] = useState<string | null>(null)
-  const [toast, setToast] = useState<{ id: string; msg: string; ok: boolean } | null>(null)
+  const [syncing, setSyncing] = useState(false)
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
 
   const fetchLeads = useCallback(async () => {
     try {
@@ -54,9 +58,25 @@ export default function LeadsPage() {
 
   useEffect(() => { fetchLeads() }, [fetchLeads])
 
-  function showToast(id: string, msg: string, ok: boolean) {
-    setToast({ id, msg, ok })
-    setTimeout(() => setToast(null), 3500)
+  function showToast(msg: string, ok: boolean) {
+    setToast({ msg, ok })
+    setTimeout(() => setToast(null), 4000)
+  }
+
+  async function handleSync() {
+    setSyncing(true)
+    try {
+      const res = await fetch('/api/meta/sync', { method: 'POST' })
+      const json = await res.json()
+      if (json.ok) {
+        showToast(`${json.importados} importados · ${json.ignorados} já existentes · Total Meta: ${json.total}`, true)
+        await fetchLeads()
+      } else {
+        showToast(json.error ?? 'Erro na sincronização', false)
+      }
+    } finally {
+      setSyncing(false)
+    }
   }
 
   async function reenviar(lead: Lead) {
@@ -64,7 +84,7 @@ export default function LeadsPage() {
     try {
       const res = await fetch(`/api/leads/${lead.id}/reenviar`, { method: 'POST' })
       const json = await res.json()
-      showToast(lead.id, json.message ?? (json.ok ? 'Enviado!' : 'Erro ao enviar'), json.ok)
+      showToast(json.message ?? (json.ok ? 'Enviado!' : 'Erro ao enviar'), json.ok)
       await fetchLeads()
     } finally {
       setSending(null)
@@ -80,7 +100,7 @@ export default function LeadsPage() {
         body: JSON.stringify({ whatsapp_enviado: true }),
       })
       const json = await res.json()
-      showToast(lead.id, json.ok ? 'Marcado como enviado!' : 'Erro ao marcar', json.ok ?? false)
+      showToast(json.ok ? 'Marcado como enviado!' : 'Erro ao marcar', json.ok ?? false)
       await fetchLeads()
     } finally {
       setMarking(null)
@@ -120,29 +140,51 @@ export default function LeadsPage() {
     <div className="p-6 md:p-8">
       {toast && (
         <div
-          className="fixed top-4 right-4 z-50 px-4 py-3 rounded-lg text-sm font-medium shadow-lg"
+          className="fixed top-4 right-4 z-50 max-w-sm px-4 py-3 rounded-lg text-sm font-medium shadow-lg"
           style={{ background: toast.ok ? '#14532d' : '#450a0a', color: toast.ok ? '#86efac' : '#fca5a5', border: `1px solid ${toast.ok ? '#166534' : '#7f1d1d'}` }}
         >
           {toast.msg}
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
         <div>
           <h1 className="text-xl md:text-2xl font-bold text-white">Leads</h1>
-          <p className="text-sm mt-0.5" style={{ color: '#9B8EC4' }}>Lista completa de leads capturados</p>
+          <p className="text-sm mt-0.5" style={{ color: '#9B8EC4' }}>Lista completa de leads capturados via Meta Ads</p>
         </div>
-        <button
-          onClick={() => { setLoading(true); fetchLeads() }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
-          style={{ background: '#2A1F5C', color: '#8B5CF6' }}
-        >
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          Atualizar
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { setLoading(true); fetchLeads() }}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium"
+            style={{ background: '#2A1F5C', color: '#8B5CF6' }}
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            Atualizar
+          </button>
+          <button
+            onClick={handleSync}
+            disabled={syncing}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold disabled:opacity-60"
+            style={{ background: '#8B5CF6', color: '#fff' }}
+          >
+            <Download size={14} className={syncing ? 'animate-spin' : ''} />
+            {syncing ? 'Sincronizando...' : 'Sincronizar Meta'}
+          </button>
+        </div>
       </div>
 
-      {/* Filters */}
+      {/* Notice if empty */}
+      {!loading && leads.length === 0 && (
+        <div className="mb-4 px-4 py-3 rounded-xl border text-sm" style={{ background: '#13102A', borderColor: '#2A1F5C', color: '#9B8EC4' }}>
+          Nenhum lead ainda. Configure o{' '}
+          <Link href="/configuracoes" className="underline" style={{ color: '#8B5CF6' }}>
+            Access Token e Form ID
+          </Link>
+          {' '}e clique em <strong style={{ color: '#fff' }}>Sincronizar Meta</strong>.
+        </div>
+      )}
+
+      {/* Filter tabs */}
       <div className="flex flex-wrap gap-2 mb-4">
         {FILTERS.map(({ key, label, color }) => (
           <button
@@ -179,7 +221,7 @@ export default function LeadsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr style={{ background: '#100D26', borderBottom: '1px solid #2A1F5C' }}>
-                {['Nome', 'Telefone', 'E-mail', 'Recebido em', 'WhatsApp', 'Ações'].map((h) => (
+                {['Nome', 'Telefone', 'E-mail', 'Recebido em', 'Origem', 'WhatsApp', 'Ações'].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: '#9B8EC4' }}>
                     {h}
                   </th>
@@ -188,9 +230,9 @@ export default function LeadsPage() {
             </thead>
             <tbody>
               {loading && filtered.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-10 text-center" style={{ color: '#9B8EC4' }}>Carregando...</td></tr>
+                <tr><td colSpan={7} className="px-4 py-10 text-center" style={{ color: '#9B8EC4' }}>Carregando...</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-10 text-center" style={{ color: '#9B8EC4' }}>
+                <tr><td colSpan={7} className="px-4 py-10 text-center" style={{ color: '#9B8EC4' }}>
                   {search || filter !== 'todos' ? 'Nenhum resultado.' : 'Nenhum lead ainda.'}
                 </td></tr>
               ) : filtered.map((lead, i) => (
@@ -200,10 +242,18 @@ export default function LeadsPage() {
                   <td className="px-4 py-3 text-xs" style={{ color: '#9B8EC4' }}>{lead.email || '—'}</td>
                   <td className="px-4 py-3 text-xs" style={{ color: '#9B8EC4' }}>{fmt(lead.created_at)}</td>
                   <td className="px-4 py-3">
+                    {lead.facebook_lead_id ? (
+                      <span className="inline-block px-1.5 py-0.5 rounded text-xs" style={{ background: '#2A1F5C', color: '#8B5CF6' }}>
+                        Meta Ads
+                      </span>
+                    ) : (
+                      <span className="text-xs" style={{ color: '#6B5FA0' }}>Manual</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
                     {lead.whatsapp_enviado ? (
                       <span className="flex items-center gap-1 text-green-400 text-xs font-medium">
-                        <CheckCircle size={12} /> Enviado<br />
-                        <span className="text-xs opacity-60 ml-1">{fmt(lead.whatsapp_enviado_em)}</span>
+                        <CheckCircle size={12} /> Enviado
                       </span>
                     ) : (
                       <span className="flex items-center gap-1 text-xs font-medium" style={{ color: lead.erro_whatsapp ? '#ef4444' : '#f59e0b' }}>
@@ -216,8 +266,7 @@ export default function LeadsPage() {
                       <button
                         onClick={() => reenviar(lead)}
                         disabled={sending === lead.id}
-                        title="Reenviar WhatsApp"
-                        className="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-opacity disabled:opacity-50"
+                        className="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium disabled:opacity-50"
                         style={{ background: '#2A1F5C', color: '#8B5CF6' }}
                       >
                         <RotateCcw size={11} className={sending === lead.id ? 'animate-spin' : ''} />
@@ -227,8 +276,7 @@ export default function LeadsPage() {
                         <button
                           onClick={() => marcarEnviado(lead)}
                           disabled={marking === lead.id}
-                          title="Marcar como enviado"
-                          className="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-opacity disabled:opacity-50"
+                          className="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium disabled:opacity-50"
                           style={{ background: '#14532d', color: '#86efac' }}
                         >
                           <CheckSquare size={11} />
@@ -242,7 +290,7 @@ export default function LeadsPage() {
             </tbody>
           </table>
         </div>
-        <div className="px-4 py-3 border-t flex items-center justify-between" style={{ borderColor: '#2A1F5C' }}>
+        <div className="px-4 py-3 border-t" style={{ borderColor: '#2A1F5C' }}>
           <p className="text-xs" style={{ color: '#6B5FA0' }}>{filtered.length} de {leads.length} leads</p>
         </div>
       </div>

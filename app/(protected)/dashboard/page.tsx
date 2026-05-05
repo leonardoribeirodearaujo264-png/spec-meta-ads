@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Users, MessageCircle, AlertCircle, RefreshCw, CheckCircle, XCircle } from 'lucide-react'
+import { Users, MessageCircle, AlertCircle, RefreshCw, CheckCircle, XCircle, Download } from 'lucide-react'
+import Link from 'next/link'
 
 interface Lead {
   id: string
@@ -25,6 +26,8 @@ export default function DashboardPage() {
   const [leads, setLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
+  const [syncing, setSyncing] = useState(false)
+  const [syncMsg, setSyncMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
   const fetchLeads = useCallback(async () => {
     try {
@@ -43,6 +46,27 @@ export default function DashboardPage() {
     return () => clearInterval(t)
   }, [fetchLeads])
 
+  async function handleSync() {
+    setSyncing(true)
+    setSyncMsg(null)
+    try {
+      const res = await fetch('/api/meta/sync', { method: 'POST' })
+      const json = await res.json()
+      if (json.ok) {
+        setSyncMsg({
+          ok: true,
+          text: `${json.importados} leads importados da Meta · ${json.ignorados} já existentes`,
+        })
+        await fetchLeads()
+      } else {
+        setSyncMsg({ ok: false, text: json.error ?? 'Erro na sincronização' })
+      }
+    } finally {
+      setSyncing(false)
+      setTimeout(() => setSyncMsg(null), 8000)
+    }
+  }
+
   const total = leads.length
   const enviados = leads.filter((l) => l.whatsapp_enviado).length
   const pendentes = leads.filter((l) => !l.whatsapp_enviado && !l.erro_whatsapp).length
@@ -51,20 +75,61 @@ export default function DashboardPage() {
 
   return (
     <div className="p-6 md:p-8">
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div>
           <h1 className="text-xl md:text-2xl font-bold text-white">Dashboard</h1>
           <p className="text-sm mt-0.5" style={{ color: '#9B8EC4' }}>Visão geral dos leads capturados</p>
         </div>
-        <button
-          onClick={() => { setLoading(true); fetchLeads() }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
-          style={{ background: '#2A1F5C', color: '#8B5CF6' }}
-        >
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          Atualizar
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { setLoading(true); fetchLeads() }}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium"
+            style={{ background: '#2A1F5C', color: '#8B5CF6' }}
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            Atualizar
+          </button>
+          <button
+            onClick={handleSync}
+            disabled={syncing}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold disabled:opacity-60"
+            style={{ background: '#8B5CF6', color: '#fff' }}
+          >
+            <Download size={14} className={syncing ? 'animate-spin' : ''} />
+            {syncing ? 'Sincronizando...' : 'Sincronizar Meta'}
+          </button>
+        </div>
       </div>
+
+      {/* Sync message */}
+      {syncMsg && (
+        <div
+          className="mb-4 flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm"
+          style={{
+            background: syncMsg.ok ? '#14532d' : '#450a0a',
+            color: syncMsg.ok ? '#86efac' : '#fca5a5',
+            border: `1px solid ${syncMsg.ok ? '#166534' : '#7f1d1d'}`,
+          }}
+        >
+          {syncMsg.ok ? <CheckCircle size={14} /> : '✗'} {syncMsg.text}
+          {syncMsg.ok && total === 0 && (
+            <Link href="/configuracoes" className="underline ml-2" style={{ color: '#86efac' }}>
+              Configurar token Meta →
+            </Link>
+          )}
+        </div>
+      )}
+
+      {/* Notice when no leads */}
+      {!loading && total === 0 && (
+        <div className="mb-5 px-4 py-3 rounded-xl border text-sm" style={{ background: '#13102A', borderColor: '#2A1F5C', color: '#9B8EC4' }}>
+          Nenhum lead encontrado. Configure o{' '}
+          <Link href="/configuracoes" className="underline" style={{ color: '#8B5CF6' }}>
+            Access Token e Form ID da Meta
+          </Link>
+          {' '}e clique em <strong style={{ color: '#fff' }}>Sincronizar Meta</strong> para importar os leads existentes.
+        </div>
+      )}
 
       {/* Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
@@ -76,7 +141,12 @@ export default function DashboardPage() {
 
       {/* Recent leads */}
       <div>
-        <h2 className="text-base font-semibold text-white mb-3">Últimos leads recebidos</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-semibold text-white">Últimos leads recebidos</h2>
+          <Link href="/leads" className="text-xs hover:underline" style={{ color: '#8B5CF6' }}>
+            Ver todos →
+          </Link>
+        </div>
         <div className="rounded-xl overflow-hidden border" style={{ borderColor: '#2A1F5C', background: '#13102A' }}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -93,7 +163,9 @@ export default function DashboardPage() {
                 {loading && recentes.length === 0 ? (
                   <tr><td colSpan={5} className="px-4 py-10 text-center" style={{ color: '#9B8EC4' }}>Carregando...</td></tr>
                 ) : recentes.length === 0 ? (
-                  <tr><td colSpan={5} className="px-4 py-10 text-center" style={{ color: '#9B8EC4' }}>Nenhum lead ainda.</td></tr>
+                  <tr><td colSpan={5} className="px-4 py-10 text-center" style={{ color: '#9B8EC4' }}>
+                    Nenhum lead ainda. Use o botão <strong style={{ color: '#fff' }}>Sincronizar Meta</strong> acima.
+                  </td></tr>
                 ) : recentes.map((lead, i) => (
                   <tr key={lead.id} className="border-t" style={{ borderColor: '#2A1F5C', background: i % 2 === 0 ? 'transparent' : '#100D26' }}>
                     <td className="px-4 py-3 text-white font-medium">{lead.nome || '—'}</td>
