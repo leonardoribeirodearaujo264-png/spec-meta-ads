@@ -2,11 +2,24 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, LogOut, Users } from 'lucide-react'
+import {
+  LayoutDashboard,
+  Users,
+  Send,
+  Webhook,
+  Settings,
+  FileText,
+  LogOut,
+} from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 
 const NAV = [
-  { href: '/dashboard', label: 'Leads', icon: LayoutDashboard },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/leads', label: 'Leads', icon: Users },
+  { href: '/disparar', label: 'Disparar Mensagem', icon: Send },
+  { href: '/webhook', label: 'Webhook Meta', icon: Webhook },
+  { href: '/configuracoes', label: 'Configurações', icon: Settings },
+  { href: '/logs', label: 'Logs', icon: FileText },
 ]
 
 export default function Sidebar({ userEmail }: { userEmail: string }) {
@@ -22,29 +35,27 @@ export default function Sidebar({ userEmail }: { userEmail: string }) {
 
   return (
     <>
-      {/* ── Desktop sidebar ── */}
+      {/* Desktop sidebar */}
       <aside
         className="hidden md:flex fixed left-0 top-0 h-full w-60 flex-col z-20"
-        style={{ background: '#0d1526', borderRight: '1px solid #1e2a3a' }}
+        style={{ background: '#13102A', borderRight: '1px solid #2A1F5C' }}
       >
-        {/* Logo */}
-        <div className="px-6 py-5 border-b" style={{ borderColor: '#1e2a3a' }}>
+        <div className="px-6 py-5 border-b" style={{ borderColor: '#2A1F5C' }}>
           <p className="text-white font-bold text-base leading-tight">Advogado</p>
-          <p className="font-bold text-base leading-tight" style={{ color: '#00D4FF' }}>Dominante</p>
+          <p className="font-bold text-base leading-tight" style={{ color: '#8B5CF6' }}>Dominante</p>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 p-3 space-y-1">
+        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
           {NAV.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href
+            const active = pathname === href || pathname.startsWith(href + '/')
             return (
               <Link
                 key={href}
                 href={href}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all"
                 style={{
-                  background: active ? '#1e2a3a' : 'transparent',
-                  color: active ? '#00D4FF' : '#94a3b8',
+                  background: active ? '#2A1F5C' : 'transparent',
+                  color: active ? '#8B5CF6' : '#9B8EC4',
                 }}
               >
                 <Icon size={16} />
@@ -54,17 +65,20 @@ export default function Sidebar({ userEmail }: { userEmail: string }) {
           })}
         </nav>
 
-        {/* User + logout */}
-        <div className="p-4 border-t" style={{ borderColor: '#1e2a3a' }}>
+        <div className="p-4 border-t" style={{ borderColor: '#2A1F5C' }}>
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: '#1e2a3a', color: '#00D4FF' }}>
+            <div
+              className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
+              style={{ background: '#2A1F5C', color: '#8B5CF6' }}
+            >
               <Users size={14} />
             </div>
-            <p className="text-slate-400 text-xs truncate flex-1">{userEmail}</p>
+            <p className="text-xs truncate flex-1" style={{ color: '#9B8EC4' }}>{userEmail}</p>
           </div>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 text-xs text-slate-500 hover:text-red-400 transition-colors w-full"
+            className="flex items-center gap-2 text-xs transition-colors w-full hover:text-red-400"
+            style={{ color: '#9B8EC4' }}
           >
             <LogOut size={13} />
             Sair da conta
@@ -72,18 +86,19 @@ export default function Sidebar({ userEmail }: { userEmail: string }) {
         </div>
       </aside>
 
-      {/* ── Mobile top bar ── */}
+      {/* Mobile top bar */}
       <header
         className="md:hidden fixed top-0 left-0 right-0 h-14 flex items-center justify-between px-4 z-20"
-        style={{ background: '#0d1526', borderBottom: '1px solid #1e2a3a' }}
+        style={{ background: '#13102A', borderBottom: '1px solid #2A1F5C' }}
       >
         <div>
           <span className="text-white font-bold text-sm">Advogado </span>
-          <span className="font-bold text-sm" style={{ color: '#00D4FF' }}>Dominante</span>
+          <span className="font-bold text-sm" style={{ color: '#8B5CF6' }}>Dominante</span>
         </div>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-red-400 transition-colors"
+          className="flex items-center gap-1.5 text-xs hover:text-red-400 transition-colors"
+          style={{ color: '#9B8EC4' }}
         >
           <LogOut size={14} />
           Sair

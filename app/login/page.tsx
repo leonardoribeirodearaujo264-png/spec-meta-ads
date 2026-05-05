@@ -33,35 +33,33 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#0A0F1E' }}>
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#0D0B1E' }}>
       <div className="w-full max-w-sm">
-        {/* Logo */}
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-white">Advogado</h1>
-          <h1 className="text-2xl font-bold" style={{ color: '#00D4FF' }}>Dominante</h1>
-          <p className="text-slate-400 text-sm mt-2">Painel de Leads</p>
+          <h1 className="text-2xl font-bold" style={{ color: '#8B5CF6' }}>Dominante</h1>
+          <p className="text-sm mt-2" style={{ color: '#9B8EC4' }}>Painel de Leads</p>
         </div>
 
-        {/* Card */}
-        <div className="rounded-2xl p-6 border" style={{ background: '#0d1526', borderColor: '#1e2a3a' }}>
+        <div className="rounded-2xl p-6 border" style={{ background: '#13102A', borderColor: '#2A1F5C' }}>
           <h2 className="text-white font-semibold text-lg mb-5">Entrar na conta</h2>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-xs text-slate-400 mb-1.5 font-medium">E-mail</label>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: '#9B8EC4' }}>E-mail</label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="seu@email.com"
-                className="w-full px-3.5 py-2.5 rounded-lg text-sm text-white outline-none transition-colors"
-                style={{ background: '#111827', border: '1px solid #1e2a3a' }}
+                className="w-full px-3.5 py-2.5 rounded-lg text-sm text-white outline-none"
+                style={{ background: '#100D26', border: '1px solid #2A1F5C' }}
               />
             </div>
 
             <div>
-              <label className="block text-xs text-slate-400 mb-1.5 font-medium">Senha</label>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: '#9B8EC4' }}>Senha</label>
               <div className="relative">
                 <input
                   type={showPass ? 'text' : 'password'}
@@ -70,12 +68,13 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   className="w-full px-3.5 py-2.5 pr-10 rounded-lg text-sm text-white outline-none"
-                  style={{ background: '#111827', border: '1px solid #1e2a3a' }}
+                  style={{ background: '#100D26', border: '1px solid #2A1F5C' }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                  style={{ color: '#9B8EC4' }}
                 >
                   {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
@@ -89,19 +88,17 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 rounded-lg text-sm font-semibold text-black transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
-              style={{ background: '#00D4FF' }}
+              className="w-full py-2.5 rounded-lg text-sm font-semibold text-white disabled:opacity-60 flex items-center justify-center gap-2"
+              style={{ background: '#8B5CF6' }}
             >
-              {loading ? 'Entrando...' : (
-                <><LogIn size={15} /> Entrar</>
-              )}
+              {loading ? 'Entrando...' : <><LogIn size={15} /> Entrar</>}
             </button>
           </form>
         </div>
 
-        <p className="text-center text-slate-500 text-sm mt-4">
+        <p className="text-center text-sm mt-4" style={{ color: '#6B5FA0' }}>
           Não tem conta?{' '}
-          <Link href="/register" className="font-medium hover:underline" style={{ color: '#00D4FF' }}>
+          <Link href="/register" className="font-medium hover:underline" style={{ color: '#8B5CF6' }}>
             Registrar
           </Link>
         </p>
