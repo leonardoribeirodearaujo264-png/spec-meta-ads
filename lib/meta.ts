@@ -17,6 +17,13 @@ export interface MetaForm {
   leads_count?: number
 }
 
+export interface MetaPage {
+  id: string
+  name: string
+  access_token: string
+  category?: string
+}
+
 function getField(fields: MetaLeadField[], ...names: string[]): string {
   for (const name of names) {
     const found = fields.find(
@@ -75,6 +82,15 @@ export async function fetchSingleLead(leadId: string, accessToken: string): Prom
   } catch {
     return null
   }
+}
+
+export async function fetchUserPages(userAccessToken: string): Promise<MetaPage[]> {
+  const res = await fetch(
+    `https://graph.facebook.com/v20.0/me/accounts?fields=id,name,access_token,category&access_token=${encodeURIComponent(userAccessToken)}`
+  )
+  const json = await res.json()
+  if (json.error) throw new Error(`Meta API: ${json.error.message}`)
+  return json.data ?? []
 }
 
 export async function fetchFormsFromPage(pageId: string, accessToken: string): Promise<MetaForm[]> {

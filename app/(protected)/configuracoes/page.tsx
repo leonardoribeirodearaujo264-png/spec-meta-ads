@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Settings, RefreshCw, CheckCircle, Eye, EyeOff, Copy } from 'lucide-react'
+import { Settings, RefreshCw, CheckCircle, Eye, EyeOff, Copy, Globe } from 'lucide-react'
 
 interface SettingsMap extends Record<string, string | undefined> {
   META_ACCESS_TOKEN?: string
@@ -22,6 +22,13 @@ interface MetaForm {
   leads_count?: number
 }
 
+interface MetaPage {
+  id: string
+  name: string
+  access_token: string
+  category?: string
+}
+
 export default function ConfiguracoesPage() {
   const [settings, setSettings] = useState<SettingsMap>({})
   const [loading, setLoading] = useState(true)
@@ -32,6 +39,11 @@ export default function ConfiguracoesPage() {
   // Meta test
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<{ ok: boolean; info: string } | null>(null)
+
+  // Pages discovery
+  const [loadingPages, setLoadingPages] = useState(false)
+  const [pages, setPages] = useState<MetaPage[]>([])
+  const [pagesError, setPagesError] = useState('')
 
   // Forms
   const [loadingForms, setLoadingForms] = useState(false)
@@ -70,12 +82,7 @@ export default function ConfiguracoesPage() {
   }
 
   async function testarConexao() {
-    // Salva primeiro para garantir que o token está no banco
-    await fetch('/api/configuracoes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ settings }),
-    })
+    await saveAndFlush()
     setTesting(true)
     setTestResult(null)
     try {
@@ -87,12 +94,74 @@ export default function ConfiguracoesPage() {
     }
   }
 
-  async function buscarFormularios() {
+  async function saveAndFlush() {
     await fetch('/api/configuracoes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ settings }),
     })
+  }
+
+  async function buscarPaginas() {
+    await saveAndFlush()
+    setLoadingPages(true)
+    setPages([])
+    setPagesError('')
+    setForms([])
+    setFormsError('')
+    try {
+      const res = await fetch('/api/meta/pages')
+      const json = await res.json()
+      if (json.ok) {
+        setPages(json.pages ?? [])
+        if ((json.pages ?? []).length === 0) setPagesError('Nenhuma página encontrada nesta conta.')
+      } else {
+        setPagesError(json.error ?? 'Erro ao buscar páginas.')
+      }
+    } finally {
+      setLoadingPages(false)
+    }
+  }
+
+  async function selecionarPagina(page: MetaPage) {
+    // Auto-fill Page ID + page access token
+    setSettings((prev) => ({
+      ...prev,
+      META_PAGE_ID: page.id,
+      META_ACCESS_TOKEN: page.access_token,
+    }))
+    // Save immediately so form fetch uses the page token
+    await fetch('/api/configuracoes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        settings: {
+          ...settings,
+          META_PAGE_ID: page.id,
+          META_ACCESS_TOKEN: page.access_token,
+        },
+      }),
+    })
+    // Auto-fetch forms for this page
+    setLoadingForms(true)
+    setForms([])
+    setFormsError('')
+    try {
+      const res = await fetch('/api/meta/forms')
+      const json = await res.json()
+      if (json.ok) {
+        setForms(json.forms ?? [])
+        if ((json.forms ?? []).length === 0) setFormsError('Nenhum formulário encontrado nesta página.')
+      } else {
+        setFormsError(json.error ?? 'Erro ao buscar formulários.')
+      }
+    } finally {
+      setLoadingForms(false)
+    }
+  }
+
+  async function buscarFormularios() {
+    await saveAndFlush()
     setLoadingForms(true)
     setForms([])
     setFormsError('')
@@ -111,11 +180,7 @@ export default function ConfiguracoesPage() {
   }
 
   async function sincronizarLeads() {
-    await fetch('/api/configuracoes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ settings }),
-    })
+    await saveAndFlush()
     setSyncing(true)
     setSyncResult(null)
     try {
@@ -243,7 +308,17 @@ export default function ConfiguracoesPage() {
               style={{ background: '#2A1F5C', color: '#8B5CF6' }}
             >
               <RefreshCw size={12} className={testing ? 'animate-spin' : ''} />
-              {testing ? 'Testando...' : 'Testar conexão Meta'}
+              {testing ? 'Testando...' : 'Testar token'}
+            </button>
+
+            <button
+              onClick={buscarPaginas}
+              disabled={loadingPages}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold disabled:opacity-60"
+              style={{ background: '#4C1D95', color: '#C4B5FD', border: '1px solid #5B21B6' }}
+            >
+              <Globe size={12} className={loadingPages ? 'animate-spin' : ''} />
+              {loadingPages ? 'Buscando...' : 'Buscar páginas da conta'}
             </button>
 
             <button
@@ -292,6 +367,38 @@ export default function ConfiguracoesPage() {
               }}
             >
               {syncResult.msg}
+            </div>
+          )}
+
+          {/* Pages list */}
+          {pagesError && (
+            <div className="mb-3 px-3 py-2 rounded-lg text-xs" style={{ background: '#450a0a', color: '#fca5a5', border: '1px solid #7f1d1d' }}>
+              {pagesError}
+            </div>
+          )}
+          {pages.length > 0 && (
+            <div className="rounded-lg overflow-hidden border mb-3" style={{ borderColor: '#5B21B6' }}>
+              <p className="px-3 py-2 text-xs font-semibold" style={{ background: '#1E1041', color: '#C4B5FD' }}>
+                Páginas encontradas — clique para selecionar e buscar formulários
+              </p>
+              {pages.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => selecionarPagina(p)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 border-t text-left hover:bg-white/5 transition-colors"
+                  style={{ borderColor: '#5B21B6' }}
+                >
+                  <div>
+                    <p className="text-sm text-white font-medium">{p.name}</p>
+                    <p className="text-xs" style={{ color: '#9B8EC4' }}>
+                      ID: {p.id} {p.category ? `· ${p.category}` : ''}
+                    </p>
+                  </div>
+                  <span className="text-xs px-2 py-1 rounded" style={{ background: '#2A1F5C', color: '#8B5CF6' }}>
+                    Selecionar →
+                  </span>
+                </button>
+              ))}
             </div>
           )}
 
