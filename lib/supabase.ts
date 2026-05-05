@@ -1,15 +1,25 @@
 import { createClient } from '@supabase/supabase-js'
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-// Usado no servidor (webhook, dashboard) — ignora RLS
-export function createSupabaseAdmin() {
-  return createClient(url, serviceKey)
+function requireEnv(key: string): string {
+  const val = process.env[key]
+  if (!val) {
+    const msg = `[supabase] Missing required env var: ${key}`
+    console.error(msg)
+    throw new Error(msg)
+  }
+  return val
 }
 
-// Usado no cliente — sujeito a RLS
+export function createSupabaseAdmin() {
+  return createClient(
+    requireEnv('NEXT_PUBLIC_SUPABASE_URL'),
+    requireEnv('SUPABASE_SERVICE_ROLE_KEY')
+  )
+}
+
 export function createSupabaseClient() {
-  return createClient(url, anonKey)
+  return createClient(
+    requireEnv('NEXT_PUBLIC_SUPABASE_URL'),
+    requireEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY')
+  )
 }
